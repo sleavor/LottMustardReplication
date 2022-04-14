@@ -1,1 +1,1 @@
-"# Lott and Mustard Replication" 
+# Lott and Mustard Replication
