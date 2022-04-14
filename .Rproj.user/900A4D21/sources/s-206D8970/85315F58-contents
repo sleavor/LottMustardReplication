@@ -1,0 +1,65 @@
+####
+# Lott.r
+# Shawn Leavor
+# 2/16/2022
+#####
+
+#Read data
+state_df = read_dta(here("Data/UpdatedStateLevelData-2010.dta"))
+state_df = state_df %>% filter(year<=1992)
+
+#Summary stats
+summary_table <-
+  state_df %>%
+  summarize(across(
+    c(ratvio, ratpro, 
+      ratmur, ratrap,
+      rataga, ratrob,
+      rataut, ratbur,
+      ratlar),
+    list(
+      "Mean" = mean,
+      "Std. Dev" = sd
+    )
+  )) %>%
+  pivot_longer(
+    cols = everything(),
+    names_sep = "_",
+    names_to = c("Variable", ".value")
+  )
+
+translation_table <- tribble(
+  ~short_name, ~long_name,
+  "ratvio", "Violent Crime Rate",
+  "ratpro", "Property Crime Rate",
+  "ratmur", "Murder Rate",
+  "ratrap", "Rape Rate",
+  "rataga", "Assault Rate",
+  "ratrob", "Robbery Rate",
+  "rataut", "Auto Theft Rate",
+  "ratbur", "Burglary Rate",
+  "ratlar", "Larceny Rate",
+)
+renamed_table <-
+  summary_table %>%
+  left_join(translation_table, c("Variable" = "short_name")) %>%
+  mutate(Variable = coalesce(long_name, Variable)) %>%
+  select(-long_name)
+renamed_table %>%
+  kbl(caption = "Summary of Crime Statistics from 1970-1992",
+      format = "latex") %>%
+  kable_styling(latex_options = c("striped", "hold_position"))
+
+
+#Manipulate variables
+
+
+#TWFE
+formula <- as.formula("ratvio ~ ratpro + ratmur + ratrap + rataga + ratrob + rataut + ratbur + ratlar")
+
+model_fe <- lm_robust(formula = formula,
+                      data = state_df, 
+                      fixed_effect = ~fipsstat, 
+                      se_type = "stata")
+
+summary(model_fe)
